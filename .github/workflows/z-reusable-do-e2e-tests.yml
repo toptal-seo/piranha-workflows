@@ -9,6 +9,8 @@ on:
         required: true
       SITE_SECRET_KEY:
         required: true
+      SITE_KEY:
+        required: true
       AWS_ACCESS_KEY_ID:
         required: true
       AWS_BUCKET:
@@ -69,11 +71,11 @@ jobs:
       IS_PRODUCTION:                   "FALSE"
       ENVIRONMENT_NAME:                CI-E2E-Tests
 
-      # From piranha-developers-dev
+      # From piranha-{site}-dev
       PORT:                            9000
       HTTP_CMS_API_URL:                http://localhost:3001
       HTTP_PRIMARY_ROOT_URL:           http://localhost:9000
-      SITE_KEY:                        developers
+      SITE_KEY:                        ${{ secrets.SITE_KEY }}
       SITE_SECRET_KEY:                 ${{ secrets.SITE_SECRET_KEY }}
       SSR_COLLECT_PRELOADS:            "TRUE"
       SSR_ENABLED:                     "TRUE"
