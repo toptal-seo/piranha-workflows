@@ -3,13 +3,16 @@ name: CI E2E Tests
 on:
   workflow_call:
     secrets:
-      NPM_TOKEN:
-        required: true
-      CMS_DEPLOY_SSH_KEY:
-        required: true
+      # SITE-SPECIFIC
       SITE_SECRET_KEY:
         required: true
       SITE_KEY:
+        required: true
+
+      # ORG-SPECIFIC / SITE-OVERWRITABLE
+      NPM_TOKEN:
+        required: true
+      CMS_DEPLOY_SSH_KEY:
         required: true
       AWS_ACCESS_KEY_ID:
         required: true
