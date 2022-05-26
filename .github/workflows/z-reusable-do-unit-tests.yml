@@ -1,0 +1,33 @@
+name: CI Unit Tests
+
+on:
+  workflow_call:
+    secrets:
+      NPM_TOKEN:
+        required: true
+#  push:
+#    branches-ignore: [ dev, editor, prod ]
+#  pull_request:
+#    branches: [ dev, editor, prod ]
+
+jobs:
+  tests-run:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [16.13.0]
+
+    env:
+      CI: true
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Using Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run test:unit

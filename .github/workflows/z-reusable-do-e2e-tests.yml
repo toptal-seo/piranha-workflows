@@ -1,0 +1,155 @@
+name: CI E2E Tests
+
+on:
+  workflow_call:
+    secrets:
+      NPM_TOKEN:
+        required: true
+      CMS_DEPLOY_SSH_KEY:
+        required: true
+      SITE_SECRET_KEY:
+        required: true
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_BUCKET:
+        required: true
+      AWS_REGION:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      DB_MONGOOSE_URI:
+        required: true
+#  push:
+#    branches-ignore: [ dev, editor, prod ]
+#  pull_request:
+#    branches: [ dev, editor, prod ]
+
+jobs:
+  tests-run:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [16.13.0]
+
+    services:
+#      pw-image-download-only:
+#        image: mcr.microsoft.com/playwright:v1.16.3
+
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_DB: postgres_db
+          POSTGRES_PASSWORD: postgres_password
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: postgres_user
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      browser:
+        image: browserless/chrome:latest
+        env:
+          MAX_CONCURRENT_SESSIONS: 10
+        ports:
+          - 3000:3000
+        options: "--add-host=host.docker.internal:host-gateway"
+
+
+#   TODO: build docker service image for satellite and run QA on it. Deploy it
+    env:
+      CI: true
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      BASIC_AUTH_ENABLED:              "FALSE"
+      IS_DEBUG:                        "TRUE"
+      IS_LOCAL:                        "FALSE"
+      IS_PRODUCTION:                   "FALSE"
+      ENVIRONMENT_NAME:                CI-E2E-Tests
+
+      # From piranha-developers-dev
+      PORT:                            9000
+      HTTP_CMS_API_URL:                http://localhost:3001
+      HTTP_PRIMARY_ROOT_URL:           http://localhost:9000
+      SITE_KEY:                        developers
+      SITE_SECRET_KEY:                 ${{ secrets.SITE_SECRET_KEY }}
+      SSR_COLLECT_PRELOADS:            "TRUE"
+      SSR_ENABLED:                     "TRUE"
+      SSR_PUPPETEER_SERVICE_WEBSOCKET: ws://localhost:3000
+      SSR_SERVER_URI:                  http://host.docker.internal:9000
+      SSR_SEMAPHORE_INITIAL:           100
+
+      # From cms
+      AWS_ACCESS_KEY_ID:               ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_BUCKET:                      ${{ secrets.AWS_BUCKET }}
+      AWS_EXTENSIONS_PREFIX:           ci-tests/
+      AWS_REGION:                      ${{ secrets.AWS_REGION }}
+      AWS_SECRET_ACCESS_KEY:           ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      # TODO: Make DB replication from Editor DB for more actual and safer CI env
+      # Currently: READ-ONLY Dev-CMS DataBase (nightly replicated)
+      DB_MONGOOSE_URI:                 ${{ secrets.DB_MONGOOSE_URI }}
+      DB_SEQUELIZE_USE_SSL:            "FALSE"
+      DB_SEQUELIZE_URI:                postgres://postgres_user:postgres_password@localhost:5432/postgres_db
+      DATABASE_URL:                    postgres://postgres_user:postgres_password@localhost:5432/postgres_db
+      JWT_EXPIRATION:                  15m
+      JWT_EXPIRATION_REMEMBER_ME:      30d
+      NEXT_DB_MONGOOSE_URI:            ${{ secrets.DB_MONGOOSE_URI }}
+      NEXT_DB_SEQUELIZE_URI:           postgres://postgres_user:postgres_password@localhost:5432/postgres_db
+      PIRANHA_PICTURES_URL:            https://piranha-pictures-dev.herokuapp.com
+      SSR_CACHE_UPDATE_THREADS:        7
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Checking out CMS-${{ github.ref_name == 'editor' || github.ref_name == 'prod' && github.ref_name || 'dev' }} ${{ secrets.CMS_DEPLOY_SSH_KEY }}
+        uses: actions/checkout@v3
+        with:
+          repository: toptal-seo/piranha-cms
+          token: ${{ secrets.CMS_DEPLOY_SSH_KEY }}
+          ssh-key: ${{ secrets.CMS_DEPLOY_SSH_KEY }}
+          ref: ${{ github.ref_name == 'editor' || github.ref_name == 'prod' && github.ref_name || 'dev' }}
+          path: cms
+          set-safe-directory: true
+      - name: Using Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      - name: Install CMS dependencies
+        working-directory: cms
+        run: npm ci
+      - name: Building CMS
+        run: npm run build
+        working-directory: cms
+      - name: Starting CMS
+        run: npm run start &
+        working-directory: cms
+      - name: Wait CMS to be available
+        uses: jtalk/url-health-check-action@v2
+        with:
+          url: ${{ env.HTTP_CMS_API_URL }}
+          follow-redirect: false # Optional, defaults to "false"
+          max-attempts: 10 # Optional, defaults to 1
+          retry-delay: 5s # Optional, only applicable to max-attempts > 1
+          retry-all: false # Optional, defaults to "false"
+      - run: npm ci
+#      - run: npx playwright install docker-image
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build-exts
+      - run: npm run build-prod
+      - name: Starting Satellite
+        run: npm run prod &
+      - name: Wait Satellite to be available
+        uses: jtalk/url-health-check-action@v2
+        with:
+          url: ${{ env.HTTP_PRIMARY_ROOT_URL }}/robots.txt
+          follow-redirect: false # Optional, defaults to "false"
+          max-attempts: 10 # Optional, defaults to 1
+          retry-delay: 5s # Optional, only applicable to max-attempts > 1
+          retry-all: false # Optional, defaults to "false"
+      - name: Prerendering Pages
+        run: node ./back-end/scripts/prerender_ssr_cache.js ${{ env.SITE_KEY }}
+        working-directory: cms
+      - name: Running PlayWright e2e tests
+        run: npx playwright test --config tests/config/playwright.ci.config.js
