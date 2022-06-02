@@ -38,8 +38,21 @@ jobs:
         node-version: [16.13.0]
 
     services:
-#      pw-image-download-only:
-#        image: mcr.microsoft.com/playwright:v1.16.3
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_DB: postgres_db
+          POSTGRES_PASSWORD: postgres_password
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: postgres_user
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
       cms:
         image: ghcr.io/toptal-seo/piranha-cms:DEV-1672-Dockerize-CMS
         env:
@@ -73,20 +86,6 @@ jobs:
           - 3001:3001
         options: "--add-host=host.docker.internal:host-gateway"
 
-      postgres:
-        image: postgres:latest
-        env:
-          POSTGRES_DB: postgres_db
-          POSTGRES_PASSWORD: postgres_password
-          POSTGRES_PORT: 5432
-          POSTGRES_USER: postgres_user
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
       browser_1:
         image: browserless/chrome:latest
         env:
