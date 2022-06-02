@@ -155,29 +155,29 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: Checking out CMS-${{ github.ref_name == 'editor' || github.ref_name == 'prod' && github.ref_name || 'dev' }} ${{ secrets.CMS_DEPLOY_SSH_KEY }}
-        uses: actions/checkout@v3
-        with:
-          repository: toptal-seo/piranha-cms
-          token: ${{ secrets.CMS_DEPLOY_SSH_KEY }}
-          ssh-key: ${{ secrets.CMS_DEPLOY_SSH_KEY }}
-          ref: ${{ github.ref_name == 'editor' || github.ref_name == 'prod' && github.ref_name || 'dev' }}
-          path: cms
-          set-safe-directory: true
+#      - name: Checking out CMS-${{ github.ref_name == 'editor' || github.ref_name == 'prod' && github.ref_name || 'dev' }} ${{ secrets.CMS_DEPLOY_SSH_KEY }}
+#        uses: actions/checkout@v3
+#        with:
+#          repository: toptal-seo/piranha-cms
+#          token: ${{ secrets.CMS_DEPLOY_SSH_KEY }}
+#          ssh-key: ${{ secrets.CMS_DEPLOY_SSH_KEY }}
+#          ref: ${{ github.ref_name == 'editor' || github.ref_name == 'prod' && github.ref_name || 'dev' }}
+#          path: cms
+#          set-safe-directory: true
       - name: Using Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
-      - name: Install CMS dependencies
-        working-directory: cms
-        run: npm ci
-      - name: Building CMS
-        run: npm run build
-        working-directory: cms
-      - name: Starting CMS
-        run: npm run start &
-        working-directory: cms
+#      - name: Install CMS dependencies
+#        working-directory: cms
+#        run: npm ci
+#      - name: Building CMS
+#        run: npm run build
+#        working-directory: cms
+#      - name: Starting CMS
+#        run: npm run start &
+#        working-directory: cms
       - name: Wait CMS to be available
         uses: jtalk/url-health-check-action@v2
         with:
@@ -201,8 +201,8 @@ jobs:
           max-attempts: 10 # Optional, defaults to 1
           retry-delay: 5s # Optional, only applicable to max-attempts > 1
           retry-all: false # Optional, defaults to "false"
-      - name: Prerendering Pages
-        run: node ./back-end/scripts/prerender_ssr_cache.js ${{ env.SITE_KEY }}
-        working-directory: cms
+#      - name: Prerendering Pages
+#        run: node ./back-end/scripts/prerender_ssr_cache.js ${{ env.SITE_KEY }}
+#        working-directory: cms
       - name: Running PlayWright e2e tests
         run: npx playwright test --config tests/config/playwright.ci.config.js
