@@ -51,6 +51,7 @@ jobs:
           IS_PRODUCTION: "FALSE"
           ENVIRONMENT_NAME: CI-E2E-Tests
 
+          PORT:                            3001
           AWS_ACCESS_KEY_ID:               ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_BUCKET:                      ${{ secrets.AWS_BUCKET }}
           AWS_EXTENSIONS_PREFIX:           ci-tests/
@@ -68,6 +69,8 @@ jobs:
           NEXT_DB_SEQUELIZE_URI:           postgres://postgres_user:postgres_password@host.docker.internal:5432/postgres_db
           PIRANHA_PICTURES_URL:            https://piranha-pictures-dev.herokuapp.com
           SSR_CACHE_UPDATE_THREADS:        7
+        ports:
+          - 3001:3001
         options: "--add-host=host.docker.internal:host-gateway"
 
       postgres:
