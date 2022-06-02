@@ -40,6 +40,35 @@ jobs:
     services:
 #      pw-image-download-only:
 #        image: mcr.microsoft.com/playwright:v1.16.3
+      cms:
+        image: ghcr.io/toptal-seo/piranha-cms:DEV-1672-Dockerize-CMS
+        env:
+          CI: true
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          BASIC_AUTH_ENABLED: "FALSE"
+          IS_DEBUG: "TRUE"
+          IS_LOCAL: "FALSE"
+          IS_PRODUCTION: "FALSE"
+          ENVIRONMENT_NAME: CI-E2E-Tests
+
+          AWS_ACCESS_KEY_ID:               ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_BUCKET:                      ${{ secrets.AWS_BUCKET }}
+          AWS_EXTENSIONS_PREFIX:           ci-tests/
+          AWS_REGION:                      ${{ secrets.AWS_REGION }}
+          AWS_SECRET_ACCESS_KEY:           ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          # TODO: Make DB replication from Editor DB for more actual and safer CI env
+          # Currently: READ-ONLY Dev-CMS DataBase (nightly replicated)
+          DB_MONGOOSE_URI:                 ${{ secrets.DB_MONGOOSE_URI }}
+          DB_SEQUELIZE_USE_SSL:            "FALSE"
+          DB_SEQUELIZE_URI:                postgres://postgres_user:postgres_password@host.docker.internal:5432/postgres_db
+          DATABASE_URL:                    postgres://postgres_user:postgres_password@host.docker.internal:5432/postgres_db
+          JWT_EXPIRATION:                  15m
+          JWT_EXPIRATION_REMEMBER_ME:      30d
+          NEXT_DB_MONGOOSE_URI:            ${{ secrets.DB_MONGOOSE_URI }}
+          NEXT_DB_SEQUELIZE_URI:           postgres://postgres_user:postgres_password@host.docker.internal:5432/postgres_db
+          PIRANHA_PICTURES_URL:            https://piranha-pictures-dev.herokuapp.com
+          SSR_CACHE_UPDATE_THREADS:        7
+        options: "--add-host=host.docker.internal:host-gateway"
 
       postgres:
         image: postgres:latest
@@ -55,12 +84,28 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-      browser:
+      browser_1:
         image: browserless/chrome:latest
         env:
           MAX_CONCURRENT_SESSIONS: 10
         ports:
-          - 3000:3000
+          - 7000:3000
+        options: "--add-host=host.docker.internal:host-gateway"
+
+      browser_2:
+        image: browserless/chrome:latest
+        env:
+          MAX_CONCURRENT_SESSIONS: 10
+        ports:
+          - 7001:3000
+        options: "--add-host=host.docker.internal:host-gateway"
+
+      browser_3:
+        image: browserless/chrome:latest
+        env:
+          MAX_CONCURRENT_SESSIONS: 10
+        ports:
+          - 7002:3000
         options: "--add-host=host.docker.internal:host-gateway"
 
 
@@ -82,28 +127,28 @@ jobs:
       SITE_SECRET_KEY:                 ${{ secrets.SITE_SECRET_KEY }}
       SSR_COLLECT_PRELOADS:            "TRUE"
       SSR_ENABLED:                     "TRUE"
-      SSR_PUPPETEER_SERVICE_WEBSOCKET: ws://localhost:3000
+      SSR_PUPPETEER_SERVICE_WEBSOCKET: ws://localhost:7000;ws://localhost:7001;ws://localhost:7002
       SSR_SERVER_URI:                  http://host.docker.internal:9000
       SSR_SEMAPHORE_INITIAL:           100
 
       # From cms
-      AWS_ACCESS_KEY_ID:               ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_BUCKET:                      ${{ secrets.AWS_BUCKET }}
-      AWS_EXTENSIONS_PREFIX:           ci-tests/
-      AWS_REGION:                      ${{ secrets.AWS_REGION }}
-      AWS_SECRET_ACCESS_KEY:           ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      # TODO: Make DB replication from Editor DB for more actual and safer CI env
-      # Currently: READ-ONLY Dev-CMS DataBase (nightly replicated)
-      DB_MONGOOSE_URI:                 ${{ secrets.DB_MONGOOSE_URI }}
-      DB_SEQUELIZE_USE_SSL:            "FALSE"
-      DB_SEQUELIZE_URI:                postgres://postgres_user:postgres_password@localhost:5432/postgres_db
-      DATABASE_URL:                    postgres://postgres_user:postgres_password@localhost:5432/postgres_db
-      JWT_EXPIRATION:                  15m
-      JWT_EXPIRATION_REMEMBER_ME:      30d
-      NEXT_DB_MONGOOSE_URI:            ${{ secrets.DB_MONGOOSE_URI }}
-      NEXT_DB_SEQUELIZE_URI:           postgres://postgres_user:postgres_password@localhost:5432/postgres_db
-      PIRANHA_PICTURES_URL:            https://piranha-pictures-dev.herokuapp.com
-      SSR_CACHE_UPDATE_THREADS:        7
+#      AWS_ACCESS_KEY_ID:               ${{ secrets.AWS_ACCESS_KEY_ID }}
+#      AWS_BUCKET:                      ${{ secrets.AWS_BUCKET }}
+#      AWS_EXTENSIONS_PREFIX:           ci-tests/
+#      AWS_REGION:                      ${{ secrets.AWS_REGION }}
+#      AWS_SECRET_ACCESS_KEY:           ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#      # TODO: Make DB replication from Editor DB for more actual and safer CI env
+#      # Currently: READ-ONLY Dev-CMS DataBase (nightly replicated)
+#      DB_MONGOOSE_URI:                 ${{ secrets.DB_MONGOOSE_URI }}
+#      DB_SEQUELIZE_USE_SSL:            "FALSE"
+#      DB_SEQUELIZE_URI:                postgres://postgres_user:postgres_password@localhost:5432/postgres_db
+#      DATABASE_URL:                    postgres://postgres_user:postgres_password@localhost:5432/postgres_db
+#      JWT_EXPIRATION:                  15m
+#      JWT_EXPIRATION_REMEMBER_ME:      30d
+#      NEXT_DB_MONGOOSE_URI:            ${{ secrets.DB_MONGOOSE_URI }}
+#      NEXT_DB_SEQUELIZE_URI:           postgres://postgres_user:postgres_password@localhost:5432/postgres_db
+#      PIRANHA_PICTURES_URL:            https://piranha-pictures-dev.herokuapp.com
+#      SSR_CACHE_UPDATE_THREADS:        7
 
     steps:
       - uses: actions/checkout@v3
