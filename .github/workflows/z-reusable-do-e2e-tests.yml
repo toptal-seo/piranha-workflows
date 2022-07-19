@@ -155,13 +155,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: Checking out CMS-${{ github.ref_name == 'editor' || github.ref_name == 'prod' && github.ref_name || 'dev' }} ${{ secrets.CMS_DEPLOY_SSH_KEY }}
+      - name: Checking out CMS-${{ (github.ref_name == 'editor' || github.ref_name == 'prod') && github.ref_name || 'dev' }} ${{ secrets.CMS_DEPLOY_SSH_KEY }}
         uses: actions/checkout@v3
         with:
           repository: toptal-seo/piranha-cms
           token: ${{ secrets.CMS_DEPLOY_SSH_KEY }}
           ssh-key: ${{ secrets.CMS_DEPLOY_SSH_KEY }}
-          ref: ${{ github.ref_name == 'editor' || github.ref_name == 'prod' && github.ref_name || 'dev' }}
+          ref: ${{ (github.ref_name == 'editor' || github.ref_name == 'prod') && github.ref_name || 'dev' }}
           path: cms
           set-safe-directory: true
       - name: Using Node.js ${{ matrix.node-version }}
